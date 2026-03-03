@@ -36,9 +36,20 @@ def check_user(username):
             save_data(data)
     return jsonify({"allowed": False})
 
+@app.route("/remove/<username>")
+def remove_user(username):
+    data = load_data()
+    if username in data:
+        del data[username]
+        save_data(data)
+        return jsonify({"status": "removed"})
+    return jsonify({"status": "not_found"})
+
+@app.route("/clear")
+def clear_all():
+    save_data({})
+    return jsonify({"status": "cleared"})
+
 @app.route("/")
 def home():
     return "API Running"
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
