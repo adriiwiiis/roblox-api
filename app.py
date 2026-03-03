@@ -18,45 +18,35 @@ def save_data(data):
 
 def clean_expired(data):
     now = datetime.utcnow()
-    updated = False
+    changed = False
+
     for user in list(data.keys()):
-        expire = datetime.fromisoformat(data[user])
-        if now >= expire:
+        last_seen = datetime.fromisoformat(data[user])
+        if now - last_seen > timedelta(seconds=10):
             del data[user]
-            updated = True
-    if updated:
+            changed = True
+
+    if changed:
         save_data(data)
+
     return data
 
-@app.route("/add/<username>/<hours>")
-def add_user(username, hours):
+@app.route("/heartbeat/<username>")
+def heartbeat(username):
     data = load_data()
     data = clean_expired(data)
 
-    expire_time = datetime.utcnow() + timedelta(hours=float(hours))
-    data[username] = expire_time.isoformat()
-
+    data[username] = datetime.utcnow().isoformat()
     save_data(data)
-    return jsonify({"status": "added"})
+
+    return jsonify({"status": "online"})
 
 @app.route("/check/<username>")
 def check_user(username):
     data = load_data()
     data = clean_expired(data)
 
-    if username in data:
-        return jsonify({"allowed": True})
-
-    return jsonify({"allowed": False})
-
-@app.route("/remove/<username>")
-def remove_user(username):
-    data = load_data()
-    if username in data:
-        del data[username]
-        save_data(data)
-        return jsonify({"status": "removed"})
-    return jsonify({"status": "not_found"})
+    return jsonify({"allowed": username in data})
 
 @app.route("/clear")
 def clear_all():
